@@ -1,0 +1,638 @@
+<title>블라인드 포커</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: portrait = one column (info, tray, controls, then the board sized to fit the window height); landscape = info left, board right. Board is 4 columns x 2-4 rows by difficulty. Single dark "game room" look by choice. */
+:root {
+  --bg: #0d1210;
+  --panel: #151d19;
+  --ink: #e8eee9;
+  --muted: #8a9a91;
+  --line: rgba(255, 255, 255, 0.13);
+  --gold: #f0c24b;
+  --best: #46d6b4;
+  --crimson: #8c1f2f;
+  --crimson-deep: #5a1220;
+  --card: #f6f4ec;
+  --card-ink: #1a1e1c;
+  --suit-red: #c8322b;
+  --font-display: "Chakra Petch", "Noto Sans KR", system-ui, sans-serif;
+  --font-body: "Noto Sans KR", system-ui, sans-serif;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+/* Landscape: info and controls on the left, the 4x4 board on the right sized so all 16 cards fit the window height. */
+@media (min-width: 720px) and (min-aspect-ratio: 5/4) {
+  .app { max-width: 1040px; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr; grid-template-areas: "side stage" "rules stage"; column-gap: 28px; row-gap: 18px; align-items: start; }
+  .side { grid-area: side; }
+  .stage { grid-area: stage; position: sticky; top: 12px; height: calc(100vh - 24px); height: calc(100dvh - 24px); align-items: center; }
+  .stage-in { width: auto; }
+  .rules { grid-area: rules; }
+  .stage .board { flex: none; max-width: none; width: min(460px, calc((100vh - 40px - 8px * (var(--rows) - 1)) / var(--rows) * 20 / 7 + 24px)); width: min(460px, calc((100dvh - 40px - 8px * (var(--rows) - 1)) / var(--rows) * 20 / 7 + 24px)); }
+  body { padding-block: 12px 24px; }
+}
+h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
+.sub { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.tally { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.tally b { color: var(--gold); font-weight: 700; }
+
+.bar { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; }
+.phase { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; }
+.levelrow { display: flex; align-items: center; gap: 12px; }
+.levelrow .lbl { font-size: 13px; color: var(--muted); flex: none; }
+.levels { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.levels button { display: flex; align-items: baseline; justify-content: center; gap: 6px; font-family: var(--font-body); font-size: 13px; color: var(--muted); background: var(--panel); border: 1.5px solid var(--line); padding: 10px 8px; border-radius: 10px; cursor: pointer; font-variant-numeric: tabular-nums; transition: border-color 0.15s, background-color 0.15s; }
+.levels button b { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink); }
+.levels button:hover:not(:disabled) { border-color: var(--gold); }
+.levels button[aria-checked="true"] { background: var(--gold); border-color: var(--gold); color: #1c1606; }
+.levels button[aria-checked="true"] b { color: #1c1606; }
+.levels button:disabled { cursor: not-allowed; }
+.levels button:disabled:not([aria-checked="true"]) { opacity: 0.4; }
+.levels button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.stage { --rows: 4; display: flex; justify-content: center; }
+.stage-in { position: relative; display: flex; align-items: stretch; justify-content: center; width: 100%; }
+.count { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(13, 18, 16, 0.72); border-radius: 12px; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+.count.on { opacity: 1; }
+.startlayer { position: absolute; inset: 0; z-index: 6; display: grid; place-items: start center; padding-top: clamp(24px, 22%, 150px); background: rgba(13, 18, 16, 0.6); border-radius: 12px; transition: opacity 0.25s; }
+.startlayer[hidden] { display: none; }
+.startlayer .main { flex: none; font-size: 22px; padding: 18px 40px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5); }
+.count b { font-family: var(--font-display); font-weight: 700; font-size: clamp(96px, 34vw, 180px); line-height: 1; color: var(--gold); font-variant-numeric: tabular-nums; animation: pop 1s ease-out both; }
+@keyframes pop { 0% { transform: scale(1.5); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 80% { opacity: 1; } 100% { transform: scale(0.85); opacity: 0.2; } }
+.stage .board { flex: 1; min-width: 0; max-width: calc((100vh - 32px - 8px * (var(--rows) - 1)) / var(--rows) * 20 / 7 + 24px); max-width: calc((100dvh - 32px - 8px * (var(--rows) - 1)) / var(--rows) * 20 / 7 + 24px); }
+.vtrack { flex: none; width: 14px; margin-left: 12px; background: var(--line); border-radius: 7px; overflow: hidden; display: flex; align-items: flex-end; transition: width 0.55s ease, margin-left 0.55s ease, opacity 0.4s ease; }
+.stage.gone .vtrack { width: 0; margin-left: 0; opacity: 0; }
+.vtrack i { display: block; width: 100%; height: 100%; background: var(--gold); border-radius: 7px; transition: height 0.12s linear, background-color 0.2s; }
+.vtrack i.warn { background: #ff6a5e; }
+
+.tray { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.slots { display: grid; grid-template-columns: repeat(3, 1fr) 14px repeat(2, 1fr); gap: 8px; align-items: center; }
+.plus { text-align: center; color: var(--muted); font-family: var(--font-display); font-size: 18px; }
+.cap { margin: 10px 0 0; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.slot { aspect-ratio: 5 / 7; border: 1.5px dashed var(--line); border-radius: 8px; display: grid; place-items: center; color: var(--muted); font-family: var(--font-display); font-size: 16px; }
+
+.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+.card { position: relative; aspect-ratio: 5 / 7; container-type: inline-size; padding: 0; border: 0; background: none; perspective: 700px; cursor: pointer; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; transition: transform 0.15s; }
+.card:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 8px; }
+.card[disabled] { cursor: default; }
+.in { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.3, 0.7, 0.2, 1); }
+.card.up .in { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; border-radius: 9cqw; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+.front { transform: rotateY(180deg); background: var(--card); color: var(--card-ink); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25); }
+.front.red { color: var(--suit-red); }
+.corner { position: absolute; left: 11cqw; top: 8cqw; display: flex; flex-direction: column; align-items: center; line-height: 1; font-family: var(--font-display); font-weight: 700; font-size: 26cqw; }
+.corner i { display: block; width: 21cqw; height: 21cqw; margin-top: 3cqw; }
+.pip { position: absolute; inset: 0; display: grid; place-items: center; padding-top: 14cqw; padding-left: 8cqw; }
+.pip svg { width: 46cqw; height: 46cqw; }
+.corner svg, .mc svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+.pip svg { fill: currentColor; }
+.back { background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.07) 0 2px, transparent 2px 12px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.07) 0 2px, transparent 2px 12px),
+    linear-gradient(160deg, var(--crimson), var(--crimson-deep));
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  display: grid; place-items: end center; }
+.back small { font-family: var(--font-display); font-size: 17cqw; font-weight: 700; color: rgba(255, 255, 255, 0.78); margin-bottom: 9cqw; letter-spacing: 0.04em; }
+.card.sel { transform: translateY(-4px); }
+.card.sel::after { content: ""; position: absolute; inset: -4px; border: 2.5px solid var(--gold); border-radius: 10px; pointer-events: none; }
+.card.best::before { content: ""; position: absolute; inset: -8px; border: 2.5px solid var(--best); border-radius: 13px; pointer-events: none; }
+
+.msg { margin: 0; min-height: 3.2em; font-size: 14px; line-height: 1.6; color: var(--ink); text-wrap: pretty; }
+[hidden] { display: none !important; }
+.msg:empty { display: none; }
+.actions { display: flex; gap: 10px; }
+button.main { flex: 1; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: 0.04em; padding: 14px 18px; border-radius: 10px; border: 0; background: var(--gold); color: #1c1606; cursor: pointer; }
+button.main:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
+button.main:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.result { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.row .k { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+.row .v { font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+.row .v.mine { color: var(--gold); }
+.row .v.opt { color: var(--best); }
+.row .sm { font-family: var(--font-body); font-weight: 400; font-size: 13px; color: var(--muted); margin-left: 6px; }
+.verdict { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.5; }
+.dist { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.dist h3 { margin: 0 0 2px; font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.04em; }
+.dl { display: grid; grid-template-columns: 9.5em 1fr 4.2em; align-items: center; gap: 10px; font-size: 13px; }
+.dl .n { min-width: 0; }
+.dl .c { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dl .bar2 { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.dl .bar2 i { display: block; height: 100%; background: var(--muted); border-radius: 3px; }
+.dl.mine .n, .dl.mine .c { color: var(--gold); font-weight: 700; }
+.dl.mine .bar2 i { background: var(--gold); }
+.dl.opt .n, .dl.opt .c { color: var(--best); font-weight: 700; }
+.dl.opt .bar2 i { background: var(--best); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legend .g::before { background: var(--gold); }
+.legend .b::before { background: var(--best); }
+
+details.rules { border-top: 1px solid var(--line); padding-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.7; }
+details.rules summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+details.rules ol { padding-left: 20px; margin: 10px 0 0; }
+.hands { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.hand { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.hand .tx { flex: 1 1 130px; min-width: 0; }
+.hand .nm { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink); }
+.hand .ds { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+.hand .cs { display: flex; gap: 3px; flex: none; }
+.mc { width: 32px; aspect-ratio: 5 / 7; background: var(--card); color: var(--card-ink); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; font-family: var(--font-display); font-weight: 700; font-size: 13px; }
+.mc i { display: block; width: 13px; height: 13px; margin-top: 2px; }
+.mc.red { color: var(--suit-red); }
+.mc.kick { opacity: 0.4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .in, .card, .vtrack, .vtrack i, .count { transition: none; }
+  .count b { animation: none; }
+}
+</style>
+
+<main class="app">
+  <div class="side">
+  <div class="head">
+    <div>
+      <h1>블라인드 포커</h1>
+      <p class="sub">카드를 20초 동안 외우세요. 뒤집힌 카드 중 2장을 골라 공개된 3장과 함께 가장 높은 5장 족보를 만듭니다.</p>
+    </div>
+    <div class="tally" id="tally"></div>
+  </div>
+
+  <section class="levelrow">
+    <span class="lbl" id="levelLbl">난이도</span>
+    <div class="levels" id="levels" role="radiogroup" aria-labelledby="levelLbl">
+      <button type="button" role="radio" data-n="16"><b>상</b>16장</button>
+      <button type="button" role="radio" data-n="12"><b>중</b>12장</button>
+      <button type="button" role="radio" data-n="8"><b>하</b>8장</button>
+    </div>
+  </section>
+
+  <div class="actions" id="againWrap" hidden><button class="main" id="again" type="button">다시 하기</button></div>
+
+  <section class="tray" aria-label="내 패">
+    <div class="slots" id="tray"></div>
+    <p class="cap"><span>공개 카드 3장</span><span>선택 카드 2장</span></p>
+  </section>
+
+  <p class="msg" id="msg"></p>
+
+  <div class="actions" id="topActions" hidden><button class="main" id="main" type="button">게임 시작</button></div>
+
+  <section class="result" id="result" hidden></section>
+
+  <div class="actions" id="confirmWrap" hidden><button class="main" id="confirm" type="button" disabled>선택 확정</button></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="stage-in" id="stageIn">
+      <section class="board" id="board" aria-label="카드판"></section>
+      <div class="vtrack" aria-hidden="true"><i id="fill"></i></div>
+      <div class="count" id="count" aria-live="assertive"></div>
+      <div class="startlayer" id="startLayer"><button class="main" id="startBtn" type="button">게임 시작</button></div>
+    </div>
+  </div>
+
+  <details class="rules" id="rules">
+    <summary>규칙</summary>
+    <ol>
+      <li>난이도에 따라 트럼프 카드 16장(상), 12장(중), 8장(하)이 한 줄에 4장씩 놓이고 20초 동안 앞면이 공개됩니다.</li>
+      <li>카드가 모두 뒤집히면, 나머지 카드 중 무작위 3장이 공개됩니다.</li>
+      <li>뒤집힌 카드 중 2장을 골라 공개된 3장과 합쳐 5장 포커 패를 만듭니다. 고른 카드를 바꾸려면 다시 눌러서 빼면 됩니다.</li>
+      <li>칸 이름은 위에서 아래로 A, B, C, D줄, 왼쪽에서 오른쪽으로 1~4입니다.</li>
+      <li>족보는 아래 그림처럼 위로 갈수록 높습니다. 같은 족보끼리는 높은 숫자가 이깁니다.</li>
+    </ol>
+    <div class="hands" id="hands"></div>
+  </details>
+</main>
+
+<script>
+(function () {
+  // Suit shapes are drawn as SVG so all four read at the same size (text glyphs for ♦ render smaller).
+  var SUIT_SHAPES = [
+    '<path d="M12 2C12 2 3 9 3 14.5A4.5 4.5 0 0 0 11 17.2C10.8 19.5 9.8 21 8 22H16C14.2 21 13.2 19.5 13 17.2A4.5 4.5 0 0 0 21 14.5C21 9 12 2 12 2Z"/>',
+    '<path d="M12 21.5C12 21.5 2.5 15 2.5 8.8A5.3 5.3 0 0 1 12 6.2A5.3 5.3 0 0 1 21.5 8.8C21.5 15 12 21.5 12 21.5Z"/>',
+    '<path d="M12 1.5L21.5 12L12 22.5L2.5 12Z"/>',
+    '<circle cx="12" cy="7.2" r="4.8"/><circle cx="6.6" cy="14" r="4.8"/><circle cx="17.4" cy="14" r="4.8"/><path d="M12 12L9.3 22H14.7Z"/>'
+  ];
+  function suit(s) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + SUIT_SHAPES[s] + '</svg>'; }
+  var RANK_LABEL = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+  var HAND_NAMES = ['하이카드', '원페어', '투페어', '트리플', '스트레이트', '플러시', '풀하우스', '포카드', '스트레이트 플러시'];
+  var MEMO_MS = 20000;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var LEVELS = { 8: '하', 12: '중', 16: '상' };
+  var state = { phase: 'intro', n: 16, grid: [], community: [], picks: [], cards: [], end: 0, timer: null, cd: null };
+  var reduceMotion = false;
+  try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  function rl(r) { return RANK_LABEL[r] || String(r); }
+  function pos(i) { return 'ABCD'.charAt(Math.floor(i / 4)) + (i % 4 + 1); }
+
+  function newDeck() {
+    var d = [];
+    for (var s = 0; s < 4; s++) for (var r = 2; r <= 14; r++) d.push({ r: r, s: s });
+    for (var i = d.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = d[i]; d[i] = d[j]; d[j] = t;
+    }
+    return d;
+  }
+
+  function score5(cs) {
+    var ranks = cs.map(function (c) { return c.r; }).sort(function (a, b) { return b - a; });
+    var flush = cs.every(function (c) { return c.s === cs[0].s; });
+    var counts = {};
+    ranks.forEach(function (r) { counts[r] = (counts[r] || 0) + 1; });
+    var groups = Object.keys(counts).map(function (k) { return { r: +k, n: counts[k] }; })
+      .sort(function (a, b) { return b.n - a.n || b.r - a.r; });
+    var uniq = groups.length === 5;
+    var wheel = uniq && ranks[0] === 14 && ranks[1] === 5;
+    var straight = uniq && (ranks[0] - ranks[4] === 4 || wheel);
+    var high = wheel ? 5 : ranks[0];
+    var cat, tb;
+    if (straight && flush) { cat = 8; tb = [high]; }
+    else if (groups[0].n === 4) { cat = 7; tb = groups.map(function (g) { return g.r; }); }
+    else if (groups[0].n === 3 && groups[1].n === 2) { cat = 6; tb = groups.map(function (g) { return g.r; }); }
+    else if (flush) { cat = 5; tb = ranks; }
+    else if (straight) { cat = 4; tb = [high]; }
+    else if (groups[0].n === 3) { cat = 3; tb = groups.map(function (g) { return g.r; }); }
+    else if (groups[0].n === 2 && groups[1].n === 2) { cat = 2; tb = groups.map(function (g) { return g.r; }); }
+    else if (groups[0].n === 2) { cat = 1; tb = groups.map(function (g) { return g.r; }); }
+    else { cat = 0; tb = ranks; }
+    var v = cat;
+    for (var i = 0; i < 5; i++) v = v * 15 + (tb[i] || 0);
+    return v;
+  }
+  function handName(v) {
+    var cat = Math.floor(v / Math.pow(15, 5));
+    if (cat === 8 && v % Math.pow(15, 5) === 14 * Math.pow(15, 4)) return '로열 스트레이트 플러시';
+    return HAND_NAMES[cat];
+  }
+
+  function cardEl(card, label) {
+    var el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'card';
+    var red = card.s === 1 || card.s === 2;
+    el.innerHTML =
+      '<span class="in">' +
+      '<span class="face front' + (red ? ' red' : '') + '">' +
+      '<span class="corner"><b>' + rl(card.r) + '</b><i>' + suit(card.s) + '</i></span>' +
+      '<span class="pip">' + suit(card.s) + '</span></span>' +
+      '<span class="face back"><small>' + label + '</small></span>' +
+      '</span>';
+    el.setAttribute('aria-label', label + ' 카드');
+    return el;
+  }
+
+  function buildBoard() {
+    var b = $('board');
+    $('stage').style.setProperty('--rows', String(state.n / 4));
+    b.setAttribute('aria-label', '카드 ' + state.n + '장');
+    b.innerHTML = '';
+    state.cards = state.grid.map(function (c, i) {
+      var el = cardEl(c, pos(i));
+      el.addEventListener('click', function () { pick(i); });
+      b.appendChild(el);
+      return el;
+    });
+  }
+  function setUp(up) {
+    state.cards.forEach(function (el) { el.classList.toggle('up', up); });
+  }
+
+  function slotEl(text) {
+    var d = document.createElement('div');
+    d.className = 'slot';
+    d.textContent = text;
+    return d;
+  }
+  function plusEl() {
+    var d = document.createElement('div');
+    d.className = 'plus';
+    d.textContent = '+';
+    return d;
+  }
+  function renderTray(animate) {
+    var t = $('tray');
+    t.innerHTML = '';
+    var showFaces = state.phase === 'result';
+    var i, el;
+    for (i = 0; i < 3; i++) {
+      if (state.community.length && (state.phase === 'pick' || state.phase === 'result')) {
+        el = cardEl(state.community[i], '');
+        el.disabled = true;
+        t.appendChild(el);
+        if (animate) {
+          (function (e, k) { setTimeout(function () { e.classList.add('up'); }, 80 + k * 260); })(el, i);
+        } else {
+          el.classList.add('up');
+        }
+      } else {
+        t.appendChild(slotEl('?'));
+      }
+    }
+    t.appendChild(plusEl());
+    for (i = 0; i < 2; i++) {
+      if (state.picks[i] !== undefined) {
+        var idx = state.picks[i];
+        el = cardEl(state.grid[idx], pos(idx));
+        el.disabled = true;
+        if (showFaces) el.classList.add('up');
+        t.appendChild(el);
+      } else {
+        t.appendChild(slotEl(String(i + 1)));
+      }
+    }
+  }
+
+  function setMsg(s) { $('msg').textContent = s; }
+  function setPhase() {}
+
+  function tick() {
+    var left = state.end - Date.now();
+    if (left <= 0) { endMemo(); return; }
+    $('fill').style.height = (left / MEMO_MS * 100) + '%';
+    $('fill').classList.toggle('warn', left <= 5000);
+  }
+
+  function start() {
+    var deck = newDeck();
+    state.grid = deck.slice(0, state.n);
+    state.community = deck.slice(state.n, state.n + 3);
+    state.picks = [];
+    state.phase = 'count';
+    setLevelsLocked(true);
+    clearInterval(state.timer);
+    clearTimeout(state.cd);
+    $('stage').classList.remove('gone');
+    // Show the "다 외웠어요" button (disabled) already during the countdown so the board doesn't jump down when memorizing starts.
+    $('topActions').hidden = false;
+    $('main').textContent = '다 외웠어요';
+    $('startLayer').hidden = true;
+    $('confirmWrap').hidden = true;
+    $('againWrap').hidden = true;
+    $('result').hidden = true;
+    buildBoard();
+    setUp(false);
+    renderTray(false);
+    $('fill').style.height = '100%';
+    $('fill').classList.remove('warn');
+    setPhase('준비');
+    setMsg('곧 카드가 공개됩니다. 위치와 무늬를 기억할 준비를 하세요.');
+    $('main').disabled = true;
+    countdown(3);
+    requestAnimationFrame(revealStage);
+  }
+
+  // Bring the whole board into view (portrait phones put it below the tray), keeping what sits above it visible where possible.
+  function revealStage() {
+    var r = $('stageIn').getBoundingClientRect();
+    if (r.top >= 0 && r.bottom <= window.innerHeight) return;
+    try { $('stageIn').scrollIntoView({ block: r.height > window.innerHeight ? 'start' : 'end', behavior: reduceMotion ? 'auto' : 'smooth' }); }
+    catch (e) { $('stageIn').scrollIntoView(false); }
+  }
+
+  function countdown(n) {
+    var c = $('count');
+    if (n === 0) {
+      c.classList.remove('on');
+      c.innerHTML = '';
+      beginMemo();
+      return;
+    }
+    c.innerHTML = '<b>' + n + '</b>';
+    c.classList.add('on');
+    state.cd = setTimeout(function () { countdown(n - 1); }, 1000);
+  }
+
+  function beginMemo() {
+    state.phase = 'memo';
+    setUp(true);
+    setPhase('암기');
+    setMsg('카드 ' + state.n + '장의 위치와 무늬를 외우세요. 다 외웠으면 바로 넘어갈 수 있습니다.');
+    $('topActions').hidden = false;
+    $('main').textContent = '다 외웠어요';
+    $('main').disabled = false;
+    state.end = Date.now() + MEMO_MS;
+    state.timer = setInterval(tick, 100);
+    tick();
+    revealStage();
+  }
+
+  function endMemo() {
+    if (state.phase !== 'memo') return;
+    clearInterval(state.timer);
+    state.phase = 'flip';
+    $('fill').style.height = '0%';
+    $('fill').classList.remove('warn');
+    $('stage').classList.add('gone');
+    setUp(false);
+    setPhase('공개');
+    setMsg('카드를 뒤집습니다.');
+    $('main').disabled = true;
+    setTimeout(function () {
+      state.phase = 'pick';
+      renderTray(true);
+      setPhase('선택');
+      setMsg('공개된 3장과 어울리는 카드 2장을 기억을 더듬어 고르세요.');
+      $('topActions').hidden = true;
+      $('confirmWrap').hidden = false;
+      $('confirm').disabled = true;
+    }, 800);
+  }
+
+  function pick(i) {
+    if (state.phase !== 'pick') return;
+    var at = state.picks.indexOf(i);
+    if (at >= 0) state.picks.splice(at, 1);
+    else if (state.picks.length === 2) {
+      setMsg('이미 2장을 골랐어요. 바꾸려면 고른 카드(' + pos(state.picks[0]) + ', ' + pos(state.picks[1]) + ')를 다시 눌러 빼세요.');
+      return;
+    }
+    else state.picks.push(i);
+    state.cards.forEach(function (el, k) { el.classList.toggle('sel', state.picks.indexOf(k) >= 0); });
+    renderTray(false);
+    $('confirm').disabled = state.picks.length !== 2;
+    setMsg(state.picks.length === 2 ? '선택을 확정하면 모든 카드가 공개됩니다.' : '카드를 ' + (2 - state.picks.length) + '장 더 고르세요.');
+  }
+
+  // Per-level record: { "8": {games, top}, "12": {...}, "16": {...} }. The older single record counted 16-card games.
+  function loadAll() {
+    var all = null;
+    try { all = JSON.parse(localStorage.getItem('blindpoker.v2')); } catch (e) {}
+    if (!all || typeof all !== 'object') {
+      all = {};
+      try { var old = JSON.parse(localStorage.getItem('blindpoker.v1')); if (old && typeof old.games === 'number') all['16'] = old; } catch (e) {}
+    }
+    return all;
+  }
+  function loadTally(n) {
+    var t = loadAll()[String(n)];
+    return t && typeof t.games === 'number' ? t : { games: 0, top: 0 };
+  }
+  function saveTally(n, t) {
+    var all = loadAll();
+    all[String(n)] = t;
+    try { localStorage.setItem('blindpoker.v2', JSON.stringify(all)); } catch (e) {}
+  }
+  function showTally(n) {
+    var t = loadTally(n);
+    $('tally').innerHTML = t.games ? (LEVELS[n] + ' · ' + t.games + '판 · 최적 선택 <b>' + t.top + '</b>회') : '';
+  }
+
+  function setLevelsLocked(locked) {
+    Array.prototype.forEach.call($('levels').querySelectorAll('button'), function (b) { b.disabled = locked; });
+  }
+  function showLevel() {
+    Array.prototype.forEach.call($('levels').querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-checked', String(+b.getAttribute('data-n') === state.n));
+    });
+  }
+  function introBoard() {
+    var deck = newDeck();
+    state.grid = deck.slice(0, state.n);
+    state.community = [];
+    state.picks = [];
+    buildBoard();
+    renderTray(false);
+    setMsg('시작하면 카드 ' + state.n + '장이 20초 동안 공개됩니다. 위치와 무늬를 최대한 기억하세요.');
+  }
+  function setLevel(n) {
+    if (!LEVELS[n] || state.phase === 'count' || state.phase === 'memo' || state.phase === 'flip' || state.phase === 'pick') return;
+    state.n = n;
+    try { localStorage.setItem('blindpoker.level', String(n)); } catch (e) {}
+    showLevel();
+    showTally(n);
+    if (state.phase === 'intro') introBoard();
+  }
+
+  function confirmPick() {
+    if (state.phase !== 'pick' || state.picks.length !== 2) return;
+    state.phase = 'result';
+    var n = state.n;
+    var mine = score5(state.community.concat([state.grid[state.picks[0]], state.grid[state.picks[1]]]));
+    var best = -1, bestPairs = [], greater = 0, total = 0, dist = {};
+    var i, j, v, nm;
+    for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) {
+      v = score5(state.community.concat([state.grid[i], state.grid[j]]));
+      total++;
+      if (v > best) { best = v; bestPairs = [[i, j]]; }
+      else if (v === best) bestPairs.push([i, j]);
+      if (v > mine) greater++;
+      nm = handName(v);
+      dist[nm] = (dist[nm] || 0) + 1;
+    }
+    var rank = greater + 1;
+    var optimal = mine === best;
+    // When the player's pair ties for the top score, show their own pair as the best one.
+    var shown = optimal ? state.picks.slice().sort(function (a, b) { return a - b; }) : bestPairs[0];
+    var others = bestPairs.length - 1;
+
+    setUp(true);
+    state.cards.forEach(function (el, k) {
+      el.classList.toggle('best', shown.indexOf(k) >= 0);
+      el.disabled = true;
+    });
+    renderTray(false);
+    setPhase('결과');
+    setLevelsLocked(false);
+    $('confirmWrap').hidden = true;
+    $('againWrap').hidden = false;
+
+    var good = Math.max(3, Math.ceil(total / 10));
+    var verdict;
+    if (optimal) verdict = '최고의 선택입니다. 가능한 조합 중 가장 높은 패입니다.';
+    else if (rank <= good) verdict = '좋은 선택입니다. 더 높은 패가 ' + greater + '가지 있었습니다.';
+    else verdict = '아쉽습니다. 더 높은 패가 ' + greater + '가지 있었습니다.';
+    setMsg('');
+
+    var mineName = handName(mine), bestName = handName(best);
+    var maxCount = 0;
+    HAND_SAMPLES.forEach(function (h) { if (dist[h[0]] > maxCount) maxCount = dist[h[0]]; });
+    var distHtml = HAND_SAMPLES.filter(function (h) { return dist[h[0]]; }).map(function (h) {
+      var c = dist[h[0]];
+      var cls = 'dl' + (h[0] === mineName ? ' mine' : (h[0] === bestName ? ' opt' : ''));
+      return '<div class="' + cls + '"><span class="n">' + h[0] + '</span><span class="bar2"><i style="width:' + Math.max(4, c / maxCount * 100) + '%"></i></span><span class="c">' + c + '가지</span></div>';
+    }).join('');
+
+    var r = $('result');
+    r.hidden = false;
+    r.innerHTML =
+      '<div class="row"><span class="k">내 패 · ' + pos(state.picks[0]) + ' + ' + pos(state.picks[1]) + '</span><span class="v mine">' + mineName + '</span></div>' +
+      '<div class="row"><span class="k">최적 조합 · ' + pos(shown[0]) + ' + ' + pos(shown[1]) + (others > 0 ? ' 외 ' + others + '가지' : '') + '</span><span class="v opt">' + bestName + '</span></div>' +
+      '<div class="row"><span class="k">가능한 ' + total + '가지 조합 중</span><span class="v">' + rank + '위</span></div>' +
+      '<p class="verdict">' + verdict + '</p>' +
+      '<div class="legend"><span class="g">내 선택</span><span class="b">최적 조합</span></div>' +
+      '<div class="dist"><h3>이번 판에서 가능했던 족보</h3>' + distHtml + '</div>';
+
+    var t = loadTally(n);
+    t.games += 1;
+    if (optimal) t.top += 1;
+    saveTally(n, t);
+    showTally(n);
+  }
+
+  $('confirm').addEventListener('click', confirmPick);
+
+  $('again').addEventListener('click', start);
+
+  $('startBtn').addEventListener('click', start);
+
+  $('main').addEventListener('click', function () {
+    if (state.phase === 'memo') endMemo();
+  });
+
+  $('levels').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-n]');
+    if (b && !b.disabled) setLevel(+b.getAttribute('data-n'));
+  });
+
+  // [name, description, sample cards [rank, suit], number of cards that make the hand (rest are kickers)]
+  var HAND_SAMPLES = [
+    ['로열 스트레이트 플러시', '같은 무늬로 10부터 A까지 연속', [[14, 0], [13, 0], [12, 0], [11, 0], [10, 0]], 5],
+    ['스트레이트 플러시', '같은 무늬 숫자 5장이 연속', [[9, 1], [8, 1], [7, 1], [6, 1], [5, 1]], 5],
+    ['포카드', '같은 숫자 4장', [[13, 0], [13, 1], [13, 2], [13, 3], [4, 0]], 4],
+    ['풀하우스', '같은 숫자 3장 + 같은 숫자 2장', [[12, 0], [12, 1], [12, 2], [7, 3], [7, 0]], 5],
+    ['플러시', '같은 무늬 5장', [[14, 2], [11, 2], [9, 2], [6, 2], [3, 2]], 5],
+    ['스트레이트', '무늬 상관없이 숫자 5장이 연속 (A-2-3-4-5도 가능)', [[10, 0], [9, 1], [8, 2], [7, 3], [6, 0]], 5],
+    ['트리플', '같은 숫자 3장', [[8, 0], [8, 1], [8, 2], [13, 3], [3, 0]], 3],
+    ['투페어', '같은 숫자 2장이 두 쌍', [[11, 0], [11, 2], [5, 1], [5, 3], [14, 0]], 4],
+    ['원페어', '같은 숫자 2장', [[10, 0], [10, 1], [14, 2], [7, 3], [4, 0]], 2],
+    ['하이카드', '위 족보가 하나도 없음. 가장 높은 숫자로 비교', [[14, 0], [11, 2], [8, 3], [6, 1], [2, 0]], 5]
+  ];
+  function renderHands() {
+    $('hands').innerHTML = HAND_SAMPLES.map(function (h) {
+      var cs = h[2].map(function (c, k) {
+        var cls = 'mc' + (c[1] === 1 || c[1] === 2 ? ' red' : '') + (k >= h[3] ? ' kick' : '');
+        return '<span class="' + cls + '"><b>' + rl(c[0]) + '</b><i>' + suit(c[1]) + '</i></span>';
+      }).join('');
+      return '<div class="hand"><div class="tx"><div class="nm">' + h[0] + '</div><div class="ds">' + h[1] + '</div></div><div class="cs">' + cs + '</div></div>';
+    }).join('');
+  }
+  renderHands();
+
+  // Resting state: show the 16 backs and empty tray before the first game.
+  (function init() {
+    var saved = null;
+    try { saved = +localStorage.getItem('blindpoker.level'); } catch (e) {}
+    if (LEVELS[saved]) state.n = saved;
+    showLevel();
+    showTally(state.n);
+    introBoard();
+  })();
+})();
+</script>
