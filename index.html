@@ -83,22 +83,30 @@ h1 { background: linear-gradient(100deg, #ffe08a, #f0c24b 40%, #ff9f6b 75%, #ffd
 h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
 .sub { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-.tally { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; font-variant-numeric: tabular-nums; }
-.tally b { color: var(--gold); font-weight: 700; }
+/* Record chip: bright text on a dark translucent pill with a thin gold edge, so it reads over the patterned backdrop. Hidden until the first game. */
+.tally { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; background: rgba(8, 20, 16, 0.72); border: 1px solid rgba(240, 194, 75, 0.4); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: nowrap; }
+.tally:empty { display: none; }
+.tally b { color: var(--gold); font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.tally .lv { color: var(--gold); font-weight: 700; }
+.tally .dot { color: rgba(255, 255, 255, 0.35); margin: 0 6px; }
 .headside { display: flex; align-items: center; gap: 12px; }
-.snd { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
-.snd:hover { border-color: var(--gold); }
+/* Sound switch: gold when sound is on, dark with a red cross when muted. */
+.snd { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; border: 0; background: linear-gradient(145deg, #ffe08a, #f0c24b 50%, #e8913a); color: #2a1a04; cursor: pointer; box-shadow: 0 4px 16px rgba(240, 194, 75, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5); transition: transform 0.12s, box-shadow 0.2s, background 0.2s; }
+.snd:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(240, 194, 75, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+.snd:active { transform: translateY(1px); }
 .snd:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.snd svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.snd svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .snd .off { display: none; }
-.snd[aria-pressed="true"] { color: var(--muted); }
+.snd[aria-pressed="true"] { background: rgba(8, 20, 16, 0.72); color: #ff6a5e; box-shadow: inset 0 0 0 1.5px rgba(255, 106, 94, 0.55); }
 .snd[aria-pressed="true"] .on { display: none; }
 .snd[aria-pressed="true"] .off { display: inline; }
 
 .bar { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; }
 .phase { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; }
-.levelrow { display: flex; align-items: center; gap: 12px; }
-.levelrow .lbl { font-size: 13px; color: var(--muted); flex: none; }
+/* Difficulty: the three buttons sit in an outlined box, with the "난이도" title set into the middle of the top border (fieldset legend). */
+.levelrow { margin: 0; min-width: 0; padding: 4px 14px 14px; border: 1.5px solid rgba(240, 194, 75, 0.55); border-radius: 14px; background: rgba(12, 28, 22, 0.45); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3); }
+.levelrow .lbl { margin: 0 auto; padding: 0 12px; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: var(--gold); text-shadow: 0 1px 8px rgba(240, 194, 75, 0.4); }
+.levelrow .levels { margin-top: 6px; }
 .levels { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .levels button { display: flex; align-items: baseline; justify-content: center; gap: 6px; font-family: var(--font-body); font-size: 13px; color: var(--muted); background: var(--panel); border: 1.5px solid var(--line); padding: 10px 8px; border-radius: 10px; cursor: pointer; font-variant-numeric: tabular-nums; transition: border-color 0.15s, background-color 0.15s; }
 .levels button b { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink); }
@@ -244,14 +252,14 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     </div>
   </div>
 
-  <section class="levelrow">
-    <span class="lbl" id="levelLbl">난이도</span>
+  <fieldset class="levelrow">
+    <legend class="lbl" id="levelLbl">난이도</legend>
     <div class="levels" id="levels" role="radiogroup" aria-labelledby="levelLbl">
       <button type="button" role="radio" data-n="16"><b>상</b>16장</button>
       <button type="button" role="radio" data-n="12"><b>중</b>12장</button>
       <button type="button" role="radio" data-n="8"><b>하</b>8장</button>
     </div>
-  </section>
+  </fieldset>
 
   <div class="actions" id="againWrap" hidden><button class="main" id="again" type="button">다시 하기</button></div>
 
@@ -687,7 +695,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   }
   function showTally(n) {
     var t = loadTally(n);
-    $('tally').innerHTML = t.games ? (LEVELS[n] + ' · ' + t.games + '판 · 최적 선택 <b>' + t.top + '</b>회') : '';
+    $('tally').innerHTML = t.games ? ('<span class="lv">' + LEVELS[n] + '</span><span class="dot">·</span>' + t.games + '판<span class="dot">·</span>최적 선택 <b>' + t.top + '</b>회') : '';
   }
 
   // Big "best choice" callout in the middle of the window: pops in, stays about a second, then fades out.
