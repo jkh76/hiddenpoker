@@ -143,6 +143,12 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .msg { margin: 0; min-height: 3.2em; font-size: 14px; line-height: 1.6; color: var(--ink); text-wrap: pretty; }
 [hidden] { display: none !important; }
 .msg:empty { display: none; }
+.burst { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; pointer-events: none; opacity: 0; padding: 16px; }
+.burst.show { opacity: 1; }
+.burst.show.out { opacity: 0; transition: opacity 0.3s ease; }
+.burst span { font-family: var(--font-display); font-weight: 700; font-size: clamp(40px, 13vw, 96px); line-height: 1.1; letter-spacing: 0.02em; color: var(--gold); text-align: center; padding: 0.3em 0.6em; background: rgba(13, 18, 16, 0.78); border: 2px solid var(--gold); border-radius: 18px; text-shadow: 0 0 24px rgba(240, 194, 75, 0.55); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55); }
+.burst.show span { animation: burstpop 0.42s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+@keyframes burstpop { 0% { transform: scale(0.2) rotate(-4deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 .actions { display: flex; gap: 10px; }
 button.main { flex: 1; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: 0.04em; padding: 14px 18px; border-radius: 10px; border: 0; background: var(--gold); color: #1c1606; cursor: pointer; }
 button.main:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
@@ -189,6 +195,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
 @media (prefers-reduced-motion: reduce) {
   .in, .card, .card .front, .vtrack, .vtrack i, .count { transition: none; }
   .count b { animation: none; }
+  .burst.show span { animation: none; }
 }
 </style>
 </head>
@@ -253,6 +260,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     </ol>
     <div class="hands" id="hands"></div>
   </details>
+  <div class="burst" id="burst" role="status" aria-live="polite"></div>
 </main>
 
 <script>
@@ -520,6 +528,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     state.picks = [];
     state.phase = 'count';
     setLevelsLocked(true);
+    hideBurst();
     clearInterval(state.timer);
     clearTimeout(state.cd);
     $('stage').classList.remove('gone');
@@ -652,6 +661,23 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     $('tally').innerHTML = t.games ? (LEVELS[n] + ' · ' + t.games + '판 · 최적 선택 <b>' + t.top + '</b>회') : '';
   }
 
+  // Big "best choice" callout in the middle of the window: pops in, stays about a second, then fades out.
+  function showBurst(text) {
+    var e = $('burst');
+    clearTimeout(state.bt1); clearTimeout(state.bt2);
+    e.className = 'burst';
+    e.innerHTML = '<span></span>';
+    e.firstChild.textContent = text;
+    void e.offsetWidth;
+    e.classList.add('show');
+    state.bt1 = setTimeout(function () { e.classList.add('out'); }, 1450);
+    state.bt2 = setTimeout(function () { e.className = 'burst'; e.innerHTML = ''; }, 1800);
+  }
+  function hideBurst() {
+    clearTimeout(state.bt1); clearTimeout(state.bt2);
+    var e = $('burst'); e.className = 'burst'; e.innerHTML = '';
+  }
+
   function setLevelsLocked(locked) {
     Array.prototype.forEach.call($('levels').querySelectorAll('button'), function (b) { b.disabled = locked; });
   }
@@ -713,7 +739,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     $('againWrap').hidden = false;
 
     var good = Math.max(3, Math.ceil(total / 10));
-    setTimeout(function () { if (optimal) sfx.perfect(); else if (rank <= good) sfx.ok(); else sfx.meh(); }, 450);
+    setTimeout(function () { if (optimal) { sfx.perfect(); showBurst('최고의 선택'); } else if (rank <= good) sfx.ok(); else sfx.meh(); }, 450);
     var verdict;
     if (optimal) verdict = '최고의 선택입니다. 가능한 조합 중 가장 높은 패입니다.';
     else if (rank <= good) verdict = '좋은 선택입니다. 더 높은 패가 ' + greater + '가지 있었습니다.';
