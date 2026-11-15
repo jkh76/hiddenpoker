@@ -17,7 +17,7 @@ img { max-width: 100%; }
 /* Layout: portrait = one column (info, tray, controls, then the board sized to fit the window height); landscape = info left, board right. Board is 4 columns x 2-4 rows by difficulty. Single dark "game room" look by choice. */
 :root {
   --bg: #0d1210;
-  --panel: #151d19;
+  --panel: rgba(12, 28, 22, 0.72);
   --ink: #e8eee9;
   --muted: #8a9a91;
   --line: rgba(255, 255, 255, 0.13);
@@ -32,15 +32,39 @@ img { max-width: 100%; }
   --font-body: "Noto Sans KR", system-ui, sans-serif;
   color-scheme: dark;
 }
+html { background: #06140f; }
 body {
-  background: var(--bg);
+  background: transparent;
   color: var(--ink);
+  position: relative;
   font-family: var(--font-body);
   margin: 0;
   padding-block: 20px 40px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
+/* Casino-table backdrop: green felt under a spotlight, crimson and violet glows in the corners, a faint suit pattern, and a slowly drifting gold shimmer. Fixed layers so it stays put while the page scrolls. */
+.bg, .bg::before, .bg::after { position: fixed; inset: 0; pointer-events: none; }
+.bg { z-index: -1; overflow: hidden;
+  background:
+    radial-gradient(ellipse 75% 55% at 50% 38%, rgba(40, 160, 108, 0.55), rgba(20, 90, 62, 0.25) 55%, transparent 80%),
+    radial-gradient(circle at 0% 0%, rgba(190, 40, 64, 0.55), transparent 42%),
+    radial-gradient(circle at 100% 100%, rgba(120, 60, 210, 0.5), transparent 45%),
+    radial-gradient(circle at 100% 0%, rgba(240, 194, 75, 0.22), transparent 38%),
+    radial-gradient(circle at 0% 100%, rgba(30, 150, 200, 0.28), transparent 40%),
+    linear-gradient(160deg, #0c2c20, #06140f 55%, #140b22);
+}
+.bg::before { content: "";
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='%23ffffff' fill-opacity='0.045'%3E%3Cpath d='M24 8C24 8 15 15 15 20.5A4.5 4.5 0 0 0 23 23.2C22.8 25.5 21.8 27 20 28H28C26.2 27 25.2 25.5 25 23.2A4.5 4.5 0 0 0 33 20.5C33 15 24 8 24 8Z'/%3E%3Cpath d='M72 69.5C72 69.5 62.5 63 62.5 56.8A5.3 5.3 0 0 1 72 54.2A5.3 5.3 0 0 1 81.5 56.8C81.5 63 72 69.5 72 69.5Z'/%3E%3Cpath d='M72 6L80 16L72 26L64 16Z'/%3E%3Ccircle cx='24' cy='55' r='4.5'/%3E%3Ccircle cx='19' cy='61.5' r='4.5'/%3E%3Ccircle cx='29' cy='61.5' r='4.5'/%3E%3Cpath d='M24 59L21.5 69H26.5Z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 96px 96px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, transparent 85%);
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, transparent 85%);
+}
+.bg::after { content: ""; inset: -30%;
+  background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(240, 194, 75, 0.10) 40deg, transparent 90deg, rgba(255, 80, 120, 0.08) 180deg, transparent 230deg, rgba(120, 140, 255, 0.08) 300deg, transparent 360deg);
+  animation: shimmer 40s linear infinite;
+}
+@keyframes shimmer { to { transform: rotate(360deg); } }
 .app { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 .side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 /* Portrait: spare room under the page so the board can scroll to the middle of the window, even the short 8-card board. */
@@ -55,6 +79,7 @@ body {
   .stage .board { flex: none; max-width: none; width: min(460px, calc((100vh - 40px - 8px * (var(--rows) - 1)) / var(--rows) * 20 / 7 + 24px)); width: min(460px, calc((100dvh - 40px - 8px * (var(--rows) - 1)) / var(--rows) * 20 / 7 + 24px)); }
   body { padding-block: 12px 24px; }
 }
+h1 { background: linear-gradient(100deg, #ffe08a, #f0c24b 40%, #ff9f6b 75%, #ffd36b); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 10px rgba(240, 194, 75, 0.35)); }
 h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
 .sub { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
@@ -105,6 +130,8 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
   .count, .startlayer { inset: 0 26px 0 0; }
 }
 
+.tray, .result, .hand, .levels button { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.tray { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(240, 194, 75, 0.12); }
 .tray { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
 .slots { display: grid; grid-template-columns: repeat(3, 1fr) 14px repeat(2, 1fr); gap: 8px; align-items: center; }
 .plus { text-align: center; color: var(--muted); font-family: var(--font-display); font-size: 18px; }
@@ -196,10 +223,12 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   .in, .card, .card .front, .vtrack, .vtrack i, .count { transition: none; }
   .count b { animation: none; }
   .burst.show span { animation: none; }
+  .bg::after { animation: none; }
 }
 </style>
 </head>
 <body>
+<div class="bg" aria-hidden="true"></div>
 <main class="app">
   <div class="side">
   <div class="head">
