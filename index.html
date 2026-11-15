@@ -922,8 +922,8 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     alignStage();
   })();
 
-  // Side-by-side layout: when the board is shorter than the left column (e.g. 하, 8 cards), place it between the
-  // difficulty box's top border and the message line so its edges line up with the left-hand content.
+  // Side-by-side layout: line the board up with the left-hand content, centred between the difficulty box's top border
+  // and the message line (or the hand tray on the result screen).
   function alignStage() {
     var inner = $('stageIn'), side = document.querySelector('.side');
     var wide = false;
@@ -933,15 +933,21 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     var lg = document.querySelector('.levelrow .lbl').getBoundingClientRect();
     var boxTop = lg.top + lg.height / 2 - top0;
     // Bottom of the message's text itself (the element keeps a minimum height, so its box runs lower than the words).
-    var msgBox = $('msg').getBoundingClientRect(), msgBottom = msgBox.bottom - top0;
-    try {
-      var rg = document.createRange(); rg.selectNodeContents($('msg'));
-      var tr = rg.getBoundingClientRect();
-      if (tr.height) msgBottom = tr.bottom - top0;
-    } catch (e) {}
+    // On the result screen the message is empty and hidden, so the bottom of the hand tray is used instead.
+    var msgBottom = $('tray').closest('.tray').getBoundingClientRect().bottom - top0;
+    if ($('msg').textContent) {
+      try {
+        var rg = document.createRange(); rg.selectNodeContents($('msg'));
+        var tr = rg.getBoundingClientRect();
+        if (tr.height) msgBottom = tr.bottom - top0;
+      } catch (e) {}
+    }
     var bh = $('board').offsetHeight;
-    // Fits between the box border and the message line: centre it there. Otherwise keep its bottom level with the message.
-    var gap = Math.max(0, Math.round(Math.min(boxTop + Math.max(0, (msgBottom - boxTop - bh) / 2), msgBottom - bh)));
+    // Centre the board on the stretch between the box border and the message line. A board taller than that stretch
+    // overhangs it equally above and below, but never rises above the page top or drops past the bottom of the window.
+    var gap = boxTop + (msgBottom - boxTop - bh) / 2;
+    gap = Math.min(gap, window.innerHeight - 24 - bh);
+    gap = Math.max(0, Math.round(gap));
     inner.style.marginTop = gap + 'px';
   }
   window.addEventListener('resize', alignStage);
