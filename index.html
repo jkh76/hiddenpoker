@@ -922,15 +922,26 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     alignStage();
   })();
 
-  // Side-by-side layout: when the board is shorter than the left column (e.g. 하, 8 cards), centre it
-  // against the left column from the title down to the message line, so the two sides look balanced.
+  // Side-by-side layout: when the board is shorter than the left column (e.g. 하, 8 cards), place it between the
+  // difficulty box's top border and the message line so its edges line up with the left-hand content.
   function alignStage() {
-    var inner = $('stageIn'), side = document.querySelector('.side'), msg = $('msg');
+    var inner = $('stageIn'), side = document.querySelector('.side');
     var wide = false;
     try { wide = window.matchMedia('(min-width: 720px) and (min-aspect-ratio: 5/4)').matches; } catch (e) {}
     if (!wide) { inner.style.marginTop = ''; return; }
-    var ref = msg.getBoundingClientRect().bottom - side.getBoundingClientRect().top;
-    var gap = Math.max(0, Math.round((ref - $('board').offsetHeight) / 2));
+    var top0 = side.getBoundingClientRect().top;
+    var lg = document.querySelector('.levelrow .lbl').getBoundingClientRect();
+    var boxTop = lg.top + lg.height / 2 - top0;
+    // Bottom of the message's text itself (the element keeps a minimum height, so its box runs lower than the words).
+    var msgBox = $('msg').getBoundingClientRect(), msgBottom = msgBox.bottom - top0;
+    try {
+      var rg = document.createRange(); rg.selectNodeContents($('msg'));
+      var tr = rg.getBoundingClientRect();
+      if (tr.height) msgBottom = tr.bottom - top0;
+    } catch (e) {}
+    var bh = $('board').offsetHeight;
+    // Fits between the box border and the message line: centre it there. Otherwise keep its bottom level with the message.
+    var gap = Math.max(0, Math.round(Math.min(boxTop + Math.max(0, (msgBottom - boxTop - bh) / 2), msgBottom - bh)));
     inner.style.marginTop = gap + 'px';
   }
   window.addEventListener('resize', alignStage);
