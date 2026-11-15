@@ -73,8 +73,8 @@ body {
 @media (min-width: 720px) and (min-aspect-ratio: 5/4) {
   .app { padding-bottom: 0; max-width: 1040px; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr; grid-template-areas: "side stage" "rules stage"; column-gap: 28px; row-gap: 18px; align-items: start; }
   .side { grid-area: side; }
-  .stage { grid-area: stage; position: sticky; top: 12px; height: calc(100vh - 24px); height: calc(100dvh - 24px); align-items: center; }
-  .stage-in { width: auto; }
+  .stage { grid-area: stage; position: sticky; top: 12px; align-items: flex-start; }
+  .stage-in { width: auto; transition: margin-top 0.3s ease; }
   .rules { grid-area: rules; }
   .stage .board { flex: none; max-width: none; width: min(460px, calc((100vh - 40px - 8px * (var(--wrows) - 1)) / var(--wrows) * 20 / 7 + 24px)); width: min(460px, calc((100dvh - 40px - 8px * (var(--wrows) - 1)) / var(--wrows) * 20 / 7 + 24px)); }
   body { padding-block: 12px 24px; }
@@ -919,7 +919,26 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     showLevel();
     showTally(state.n);
     introBoard();
+    alignStage();
   })();
+
+  // Side-by-side layout: when the board is shorter than the left column (e.g. 하, 8 cards), centre it
+  // against the left column from the title down to the message line, so the two sides look balanced.
+  function alignStage() {
+    var inner = $('stageIn'), side = document.querySelector('.side'), msg = $('msg');
+    var wide = false;
+    try { wide = window.matchMedia('(min-width: 720px) and (min-aspect-ratio: 5/4)').matches; } catch (e) {}
+    if (!wide) { inner.style.marginTop = ''; return; }
+    var ref = msg.getBoundingClientRect().bottom - side.getBoundingClientRect().top;
+    var gap = Math.max(0, Math.round((ref - $('board').offsetHeight) / 2));
+    inner.style.marginTop = gap + 'px';
+  }
+  window.addEventListener('resize', alignStage);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(alignStage);
+    ro.observe($('board'));
+    ro.observe(document.querySelector('.side'));
+  }
 })();
 </script>
 </body>
