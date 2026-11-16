@@ -69,10 +69,15 @@ body {
 .side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 /* Portrait: spare room under the page so the board can scroll to the middle of the window, even the short 8-card board. */
 .app { padding-bottom: 28vh; padding-bottom: 28dvh; }
+/* Portrait: the left-column wrapper drops out of the layout so the "다시 하기" button can sit right above the card board. */
+.side { display: contents; }
+#againWrap, .stage { order: 1; }
+.rules { order: 2; }
 /* Landscape: info and controls on the left, the 4x4 board on the right sized so all 16 cards fit the window height. */
 @media (min-width: 720px) and (min-aspect-ratio: 5/4) {
   .app { padding-bottom: 0; max-width: 1040px; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr; grid-template-areas: "side stage" "rules stage"; column-gap: 28px; row-gap: 18px; align-items: start; }
-  .side { grid-area: side; }
+  .side { grid-area: side; display: flex; }
+  #againWrap { order: 0; }
   .stage { grid-area: stage; position: sticky; top: 12px; align-items: flex-start; }
   .stage-in { width: auto; transition: margin-top 0.3s ease; }
   .rules { grid-area: rules; }
@@ -643,6 +648,19 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     try { window.scrollTo({ top: Math.max(0, y), behavior: smooth && !reduceMotion ? 'smooth' : 'auto' }); }
     catch (e) { window.scrollTo(0, Math.max(0, y)); }
   }
+  // After the pick is confirmed, bring the hand tray (3 community cards + the 2 picked cards) to the top of the window.
+  // Landscape: scroll only if the tray is not already fully on screen.
+  function showTray() {
+    var el = $('tray').closest('.tray');
+    var wide = false;
+    try { wide = window.matchMedia('(min-width: 720px) and (min-aspect-ratio: 5/4)').matches; } catch (e) {}
+    var r = el.getBoundingClientRect();
+    var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    if (wide && r.top >= 0 && r.bottom <= vh) return;
+    var y = window.pageYOffset + r.top - 12;
+    try { window.scrollTo({ top: Math.max(0, y), behavior: reduceMotion ? 'auto' : 'smooth' }); }
+    catch (e) { window.scrollTo(0, Math.max(0, y)); }
+  }
   function revealStage() {
     try { if (window.matchMedia('(min-width: 720px) and (min-aspect-ratio: 5/4)').matches) return; } catch (e) {}
     centerBoard(true);
@@ -847,6 +865,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       '<p class="verdict">' + verdict + '</p>' +
       '<div class="legend"><span class="g">내 선택</span><span class="b">최적 조합</span></div>' +
       '<div class="dist"><h3>이번 판에서 가능했던 족보</h3>' + distHtml + '</div>';
+    requestAnimationFrame(showTray);
 
     var t = loadTally(n);
     t.games += 1;
