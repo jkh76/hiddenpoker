@@ -160,7 +160,7 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .cap { margin: 10px 0 0; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
 .slot { aspect-ratio: 5 / 7; border: 1.5px dashed var(--line); border-radius: 8px; display: grid; place-items: center; color: var(--muted); font-family: var(--font-display); font-size: 16px; }
 
-.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.board { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
 .card { position: relative; aspect-ratio: 5 / 7; container-type: inline-size; padding: 0; border: 0; background: none; perspective: 700px; cursor: pointer; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; transition: transform 0.15s; }
 .card:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 8px; }
@@ -188,6 +188,35 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .card .front { transition: filter 0.4s, opacity 0.4s; }
 .card.dim .front { filter: grayscale(1) brightness(0.8); opacity: 0.55; }
 .card.best::before { content: ""; position: absolute; inset: -8px; border: 2.5px solid var(--best); border-radius: 13px; pointer-events: none; }
+
+/* Dealing: while cards fly out of the deck, their backs get a drop shadow so the pile and the moving cards read as lifted off the table. */
+.board.dealing .back { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45); }
+/* Flip highlight: a thin gold ring around the card with a bright band that sweeps across it as the card lands face up or face down. */
+.gl { position: absolute; inset: -2px; z-index: 2; border-radius: calc(9cqw + 2px); padding: 2.5px; pointer-events: none; opacity: 0;
+  background:
+    linear-gradient(120deg, transparent 32%, rgba(255, 246, 210, 0.95) 46%, #f0c24b 52%, transparent 66%),
+    linear-gradient(rgba(240, 194, 75, 0.45), rgba(240, 194, 75, 0.45));
+  background-size: 260% 260%, 100% 100%;
+  background-position: 100% 100%, 0 0;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.card.glint .gl { animation: glint 0.8s ease-out 0.26s both; }
+@keyframes glint {
+  0% { opacity: 0; background-position: 100% 100%, 0 0; }
+  18% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; background-position: 0% 0%, 0 0; }
+}
+/* Community cards in the hand tray: each one pops up with a small bounce before it turns over. */
+.card.rise { animation: rise 0.5s ease-out both; }
+@keyframes rise {
+  0% { opacity: 0; transform: translateY(22px) scale(0.6); }
+  55% { opacity: 1; transform: translateY(-10px) scale(1.07); }
+  80% { transform: translateY(2px) scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
 
 .msg { margin: 0; min-height: 3.2em; font-size: 14px; line-height: 1.6; color: var(--ink); text-wrap: pretty; }
 [hidden] { display: none !important; }
@@ -287,6 +316,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   .count b { animation: none; }
   .burst.show span { animation: none; }
   .bg::after { animation: none; }
+  .card.rise, .card.glint .gl { animation: none; }
 }
 </style>
 </head>
@@ -354,7 +384,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   </details>
   <div class="burst" id="burst" role="status" aria-live="polite"></div>
 </main>
-<footer class="ver">v1.1 · 2026-11-16</footer>
+<footer class="ver">v1.2 · 2026-11-16</footer>
 
 <script>
 (function () {
@@ -536,7 +566,8 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       '<span class="corner"><b>' + rl(card.r) + '</b><i>' + suit(card.s) + '</i></span>' +
       '<span class="pip">' + suit(card.s) + '</span></span>' +
       '<span class="face back"><small>' + label + '</small></span>' +
-      '</span>';
+      '</span>' +
+      '<span class="gl" aria-hidden="true"></span>';
     el.setAttribute('aria-label', label + ' 카드');
     return el;
   }
@@ -547,6 +578,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     // Side-by-side layout: the 8-card board is sized like the 12-card one, so the left column keeps the same width on 하 and 중.
     $('stage').style.setProperty('--wrows', String(Math.max(3, state.n / 4)));
     b.setAttribute('aria-label', '카드 ' + state.n + '장');
+    b.classList.remove('dealing');
     b.innerHTML = '';
     state.cards = state.grid.map(function (c, i) {
       var el = cardEl(c, pos(i));
@@ -555,8 +587,49 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       return el;
     });
   }
+  // Gold sweep around the border of each card that just turned over (restarted if it is still running).
+  function glint(els) {
+    if (reduceMotion || !els.length) return;
+    els.forEach(function (el) { el.classList.remove('glint'); });
+    void els[0].offsetWidth;
+    els.forEach(function (el) { el.classList.add('glint'); });
+  }
   function setUp(up) {
-    state.cards.forEach(function (el) { el.classList.toggle('up', up); });
+    var changed = [];
+    state.cards.forEach(function (el) {
+      if (el.classList.contains('up') !== up) changed.push(el);
+      el.classList.toggle('up', up);
+    });
+    glint(changed);
+  }
+
+  // Deal: the cards start stacked as a deck in the middle of the board and fly out one by one, row by row, to their places.
+  // Returns how long the deal takes in ms (0 when motion is reduced or animations are unsupported).
+  function deal() {
+    var cards = state.cards;
+    if (reduceMotion || !cards.length || typeof cards[0].animate !== 'function') return 0;
+    var b = $('board'), br = b.getBoundingClientRect();
+    var cx = br.left + br.width / 2, cy = br.top + br.height / 2;
+    var n = cards.length, step = n > 12 ? 75 : 95, dur = 460, lead = 250;
+    b.classList.add('dealing');
+    cards.forEach(function (el, i) {
+      var r = el.getBoundingClientRect();
+      var dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2) - (n - i) * 0.7;
+      var rot = Math.random() * 14 - 7;
+      var delay = lead + i * step;
+      // Waiting in the deck: the next card to deal sits on top of the pile.
+      el.style.zIndex = String(n - i + 1);
+      var a = el.animate([
+        { transform: 'translate(' + dx + 'px, ' + dy + 'px) rotate(' + rot + 'deg)' },
+        { transform: 'translate(0, 0) rotate(0deg)' }
+      ], { duration: dur, delay: delay, easing: 'cubic-bezier(0.2, 0.75, 0.25, 1)', fill: 'backwards' });
+      // In flight it passes over the cards already on the table and the rest of the deck.
+      setTimeout(function () { el.style.zIndex = '100'; }, delay);
+      a.onfinish = function () { el.style.zIndex = ''; };
+    });
+    var total = lead + (n - 1) * step + dur;
+    setTimeout(function () { b.classList.remove('dealing'); }, total);
+    return total + 150;
   }
 
   function slotEl(text) {
@@ -581,7 +654,12 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
         el = cardEl(state.community[i], '');
         el.disabled = true;
         t.appendChild(el);
-        if (animate) {
+        if (animate && !reduceMotion) {
+          // Each community card pops up in turn, then turns over with the gold sweep.
+          el.classList.add('rise');
+          el.style.animationDelay = (i * 300) + 'ms';
+          (function (e, k) { setTimeout(function () { e.classList.add('up'); glint([e]); }, k * 300 + 260); })(el, i);
+        } else if (animate) {
           (function (e, k) { setTimeout(function () { e.classList.add('up'); }, 80 + k * 260); })(el, i);
         } else {
           el.classList.add('up');
@@ -642,7 +720,10 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     setPhase('준비');
     setMsg('곧 카드가 공개됩니다. 위치와 무늬를 기억할 준비를 하세요.');
     $('main').disabled = true;
-    countdown(3);
+    // Deal the cards first, then run the 3-2-1 countdown.
+    var dealMs = deal();
+    if (dealMs) state.cd = setTimeout(function () { countdown(3); }, dealMs);
+    else countdown(3);
     requestAnimationFrame(revealStage);
   }
 
