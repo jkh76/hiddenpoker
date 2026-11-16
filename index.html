@@ -92,10 +92,13 @@ body {
 h1 { background: linear-gradient(100deg, #ffe08a, #f0c24b 40%, #ff9f6b 75%, #ffd36b); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 10px rgba(240, 194, 75, 0.35)); }
 h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
 .sub { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
-.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+/* Header: title and description on the left, the sound switch pinned top-right next to the title; the record chip sits under the description. */
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.headtx { min-width: 0; }
 /* Record chip: bright text on a dark translucent pill with a thin gold edge, so it reads over the patterned backdrop. Hidden until the first game. */
 .tally { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; background: rgba(8, 20, 16, 0.72); border: 1px solid rgba(240, 194, 75, 0.4); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: nowrap; }
-.tally:empty { display: none; }
+.head .tally { display: inline-block; margin-top: 10px; }
+.tally:empty, .head .tally:empty { display: none; }
 .tally b { color: var(--gold); font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 .tally .lv { color: var(--gold); font-weight: 700; }
 .tally .dot { color: rgba(255, 255, 255, 0.35); margin: 0 6px; }
@@ -186,7 +189,14 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .card.sel { transform: translateY(-4px); }
 .card.sel::after { content: ""; position: absolute; inset: -4px; border: 2.5px solid var(--gold); border-radius: 10px; pointer-events: none; }
 .card .front { transition: filter 0.4s, opacity 0.4s; }
-.card.dim .front { filter: grayscale(1) brightness(0.8); opacity: 0.55; }
+/* Cards outside my pick and the best pair are darkened but keep their colours, so red and black suits still read when checking what was where. */
+.card.dim .front { filter: brightness(0.6) saturate(0.85); }
+/* Result tray: the cards that make the hand lift with a gold edge; leftover cards (kickers) fade back. */
+.tray .card { transition: transform 0.35s ease, opacity 0.35s ease; }
+.tray .card .front { transition: box-shadow 0.35s ease; }
+.tray .card.part { transform: translateY(-5px); }
+.tray .card.part .front { box-shadow: 0 0 0 2px var(--gold), 0 6px 14px rgba(240, 194, 75, 0.35); }
+.tray .card.kicker { opacity: 0.4; }
 .card.best::before { content: ""; position: absolute; inset: -8px; border: 2.5px solid var(--best); border-radius: 13px; pointer-events: none; }
 
 /* Dealing: while cards fly out of the deck, their backs get a drop shadow so the pile and the moving cards read as lifted off the table. */
@@ -325,16 +335,14 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
 <main class="app">
   <div class="side">
   <div class="head">
-    <div>
+    <div class="headtx">
       <h1>블라인드 포커</h1>
       <p class="sub">카드를 20초 동안 외우세요. 뒤집힌 카드 중 2장을 골라 공개된 3장과 함께 가장 높은 5장 족보를 만듭니다.</p>
-    </div>
-    <div class="headside">
       <div class="tally" id="tally"></div>
-      <button class="snd" id="snd" type="button" aria-pressed="false" aria-label="효과음 끄기" title="효과음">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path class="on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
-      </button>
     </div>
+    <button class="snd" id="snd" type="button" aria-pressed="false" aria-label="효과음 끄기" title="효과음">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path class="on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+    </button>
   </div>
 
   <fieldset class="levelrow">
@@ -345,6 +353,8 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       <button type="button" role="radio" data-n="8"><b>하</b>8장</button>
     </div>
   </fieldset>
+
+  <div class="actions" id="startWrap"><button class="main" id="startBtn" type="button">게임 시작</button></div>
 
   <div class="actions" id="againWrap" hidden><button class="main" id="again" type="button">다시 하기</button></div>
 
@@ -362,13 +372,11 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   <div class="actions" id="confirmWrap" hidden><button class="main" id="confirm" type="button" disabled>선택 확정</button></div>
   </div>
 
-  <div class="stage" id="stage">
+  <div class="stage gone" id="stage">
     <div class="stage-in" id="stageIn">
       <section class="board" id="board" aria-label="카드판"></section>
       <div class="vtrack" aria-hidden="true"><i id="fill"></i></div>
-      <div class="count" id="count" aria-live="assertive"></div>
-      <div class="startlayer" id="startLayer"><button class="main" id="startBtn" type="button">게임 시작</button></div>
-    </div>
+      <div class="count" id="count" aria-live="assertive"></div>    </div>
   </div>
 
   <details class="rules" id="rules">
@@ -384,7 +392,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   </details>
   <div class="burst" id="burst" role="status" aria-live="polite"></div>
 </main>
-<footer class="ver">v1.2 · 2026-11-16</footer>
+<footer class="ver">v1.3 · 2026-11-16</footer>
 
 <script>
 (function () {
@@ -444,7 +452,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       src.start(t);
     }
     // Filtered noise with a moving filter and a soft attack: the building block for paper and card sounds.
-    function swish(at, dur, vol, f0, f1, type, q) {
+    function swish(at, dur, vol, f0, f1, type, q, att) {
       var c = ctx; if (!c) return;
       var t = c.currentTime + at, len = Math.max(1, Math.floor(c.sampleRate * (dur + 0.02)));
       var buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
@@ -453,17 +461,16 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       src.buffer = buf; f.type = type || 'bandpass'; f.Q.value = q || 0.7;
       f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.25);
+      g.gain.exponentialRampToValueAtTime(vol, t + dur * (att || 0.25));
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       src.connect(f); f.connect(g); g.connect(master);
       src.start(t); src.stop(t + dur + 0.02);
     }
-    // One card turning over: a quick airy "fwip" as it lifts, then a soft tap as it lands on the table.
+    // One card turning over: a soft papery "sarak" brush, then a quiet settle as it lies flat.
     function cardFlip(at) {
-      var r = 0.85 + Math.random() * 0.3;
-      swish(at, 0.075, 0.3 * r, 1500 * r, 5200 * r, 'bandpass', 0.8);
-      swish(at + 0.055, 0.05, 0.2 * r, 1300, 500, 'lowpass', 0.5);
-      tone(120 * r, at + 0.058, 0.05, 'sine', 0.07, 70);
+      var r = 0.9 + Math.random() * 0.2;
+      swish(at, 0.16, 0.22 * r, 700 * r, 2400 * r, 'bandpass', 0.5, 0.45);
+      swish(at + 0.11, 0.07, 0.1 * r, 1800, 700, 'lowpass', 0.5);
     }
     function play(fn) { if (muted || !ensure()) return; try { fn(); } catch (e) {} }
     var api = {
@@ -478,10 +485,16 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       select: function () { play(function () { tone(620, 0, 0.09, 'sine', 0.25); tone(930, 0.06, 0.13, 'sine', 0.22); }); },
       deselect: function () { play(function () { tone(560, 0, 0.12, 'sine', 0.22, 360); }); },
       reject: function () { play(function () { tone(170, 0, 0.14, 'square', 0.12); tone(150, 0.1, 0.16, 'square', 0.12); }); },
-      flip: function (count, step) {
+      // Turning cards over always plays a single flip sound, however many cards turn at once.
+      flip: function () { play(function () { cardFlip(0); }); },
+      // Dealing: a light slide for each card leaving the deck, timed to match the deal animation (seconds).
+      deal: function (count, lead, step, land) {
         play(function () {
-          var n = Math.max(1, Math.min(count || 1, 8)), gap = step || 0.06, t = 0;
-          for (var i = 0; i < n; i++) { cardFlip(t); t += gap * (0.7 + Math.random() * 0.6); }
+          for (var i = 0; i < count; i++) {
+            var at = lead + i * step, r = 0.85 + Math.random() * 0.3;
+            swish(at, 0.09, 0.15 * r, 2200 * r, 6500 * r, 'bandpass', 0.9);
+            tone(130 * r, at + land, 0.04, 'sine', 0.05, 80);
+          }
         });
       },
       tick: function (n) { play(function () { tone(n === 1 ? 760 : 620, 0, 0.14, 'sine', 0.28); }); },
@@ -601,6 +614,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       el.classList.toggle('up', up);
     });
     glint(changed);
+    if (changed.length) sfx.flip();
   }
 
   // Deal: the cards start stacked as a deck in the middle of the board and fly out one by one, row by row, to their places.
@@ -627,6 +641,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       setTimeout(function () { el.style.zIndex = '100'; }, delay);
       a.onfinish = function () { el.style.zIndex = ''; };
     });
+    sfx.deal(n, lead / 1000, step / 1000, dur * 0.6 / 1000);
     var total = lead + (n - 1) * step + dur;
     setTimeout(function () { b.classList.remove('dealing'); }, total);
     return total + 150;
@@ -648,19 +663,20 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     var t = $('tray');
     t.innerHTML = '';
     var showFaces = state.phase === 'result';
-    var i, el;
+    var i, el, handEls = [];
     for (i = 0; i < 3; i++) {
       if (state.community.length && (state.phase === 'pick' || state.phase === 'result')) {
         el = cardEl(state.community[i], '');
         el.disabled = true;
         t.appendChild(el);
+        handEls.push(el);
         if (animate && !reduceMotion) {
           // Each community card pops up in turn, then turns over with the gold sweep.
           el.classList.add('rise');
           el.style.animationDelay = (i * 300) + 'ms';
-          (function (e, k) { setTimeout(function () { e.classList.add('up'); glint([e]); }, k * 300 + 260); })(el, i);
+          (function (e, k) { setTimeout(function () { e.classList.add('up'); glint([e]); sfx.flip(1); }, k * 300 + 260); })(el, i);
         } else if (animate) {
-          (function (e, k) { setTimeout(function () { e.classList.add('up'); }, 80 + k * 260); })(el, i);
+          (function (e, k) { setTimeout(function () { e.classList.add('up'); sfx.flip(1); }, 80 + k * 260); })(el, i);
         } else {
           el.classList.add('up');
         }
@@ -676,10 +692,27 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
         el.disabled = true;
         if (showFaces) el.classList.add('up');
         t.appendChild(el);
+        handEls.push(el);
       } else {
         t.appendChild(slotEl(String(i + 1)));
       }
     }
+    if (showFaces && handEls.length === 5) markHand(handEls);
+  }
+  // Result tray: for pair-type hands (one pair, two pair, three/four of a kind) only the matching cards make the hand
+  // and the rest are kickers; every other hand uses all five cards. Applied a moment later so the change animates.
+  function markHand(els) {
+    var cs = state.community.concat([state.grid[state.picks[0]], state.grid[state.picks[1]]]);
+    var cat = Math.floor(score5(cs) / Math.pow(15, 5));
+    var counts = {};
+    cs.forEach(function (c) { counts[c.r] = (counts[c.r] || 0) + 1; });
+    var grouped = cat === 1 || cat === 2 || cat === 3 || cat === 7;
+    setTimeout(function () {
+      els.forEach(function (el, k) {
+        var part = !grouped || counts[cs[k].r] >= 2;
+        el.classList.add(part ? 'part' : 'kicker');
+      });
+    }, reduceMotion ? 0 : 500);
   }
 
   function setMsg(s) { $('msg').textContent = s; }
@@ -708,7 +741,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     // Show the "다 외웠어요" button (disabled) already during the countdown so the board doesn't jump down when memorizing starts.
     $('topActions').hidden = false;
     $('main').textContent = '다 외웠어요';
-    $('startLayer').hidden = true;
+    $('startWrap').hidden = true;
     $('confirmWrap').hidden = true;
     $('againWrap').hidden = true;
     $('result').hidden = true;
