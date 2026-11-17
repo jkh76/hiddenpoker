@@ -188,7 +188,9 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
   display: grid; place-items: end center; }
 .back small { font-family: var(--font-display); font-size: 17cqw; font-weight: 700; color: rgba(255, 255, 255, 0.78); margin-bottom: 9cqw; letter-spacing: 0.04em; }
 .card.sel { transform: translateY(-4px); }
-.card.sel::after { content: ""; position: absolute; inset: -4px; border: 2.5px solid var(--gold); border-radius: 10px; pointer-events: none; }
+/* Pick and best-pair outlines sit exactly on the card's edge (same size and corner radius as the card), so they don't spill onto neighbouring cards. */
+.board { --ring: 4px; }
+.card.sel::after { content: ""; position: absolute; inset: 0; z-index: 3; border: var(--ring, 4px) solid var(--gold); border-radius: 9cqw; pointer-events: none; }
 .card .front { transition: filter 0.4s, opacity 0.4s; }
 /* Cards outside my pick and the best pair are darkened but keep their colours, so red and black suits still read when checking what was where. */
 .card.dim .front { filter: brightness(0.6) saturate(0.85); }
@@ -198,7 +200,9 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .tray .card.part { transform: translateY(-5px); }
 .tray .card.part .front { box-shadow: 0 0 0 2px var(--gold), 0 6px 14px rgba(240, 194, 75, 0.35); }
 .tray .card.kicker { opacity: 0.4; }
-.card.best::before { content: ""; position: absolute; inset: -8px; border: 2.5px solid var(--best); border-radius: 13px; pointer-events: none; }
+.card.best::before { content: ""; position: absolute; inset: 0; z-index: 3; border: var(--ring, 4px) solid var(--best); border-radius: 9cqw; pointer-events: none; }
+/* A card that is both my pick and part of the best pair: gold on the edge with the teal line just inside it. */
+.card.sel.best::before { inset: var(--ring, 4px); border-radius: calc(9cqw - var(--ring, 4px)); }
 
 /* Dealing: while cards fly out of the deck, their backs get a drop shadow so the pile and the moving cards read as lifted off the table. */
 .board.dealing .back { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45); }
