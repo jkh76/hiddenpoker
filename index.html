@@ -92,9 +92,10 @@ body {
 h1 { background: linear-gradient(100deg, #ffe08a, #f0c24b 40%, #ff9f6b 75%, #ffd36b); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 10px rgba(240, 194, 75, 0.35)); }
 h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
 .sub { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
-/* Header: title and description on the left, the sound switch pinned top-right next to the title; the record chip sits under the description. */
-.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+/* Header: the sound switch sits right beside the title; the description and the record chip follow below. */
+.head { display: block; }
 .headtx { min-width: 0; }
+.titlerow { display: flex; align-items: center; gap: 12px; }
 /* Record chip: bright text on a dark translucent pill with a thin gold edge, so it reads over the patterned backdrop. Hidden until the first game. */
 .tally { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; background: rgba(8, 20, 16, 0.72); border: 1px solid rgba(240, 194, 75, 0.4); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: nowrap; }
 .head .tally { display: inline-block; margin-top: 10px; }
@@ -336,13 +337,15 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   <div class="side">
   <div class="head">
     <div class="headtx">
-      <h1>블라인드 포커</h1>
+      <div class="titlerow">
+        <h1>블라인드 포커</h1>
+        <button class="snd" id="snd" type="button" aria-pressed="false" aria-label="효과음 끄기" title="효과음">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path class="on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+        </button>
+      </div>
       <p class="sub">카드를 20초 동안 외우세요. 뒤집힌 카드 중 2장을 골라 공개된 3장과 함께 가장 높은 5장 족보를 만듭니다.</p>
       <div class="tally" id="tally"></div>
     </div>
-    <button class="snd" id="snd" type="button" aria-pressed="false" aria-label="효과음 끄기" title="효과음">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path class="on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
-    </button>
   </div>
 
   <fieldset class="levelrow">
@@ -392,7 +395,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   </details>
   <div class="burst" id="burst" role="status" aria-live="polite"></div>
 </main>
-<footer class="ver">v1.3 · 2026-11-16</footer>
+<footer class="ver">v1.32 · 2026-11-17</footer>
 
 <script>
 (function () {
