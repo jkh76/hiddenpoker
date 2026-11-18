@@ -131,8 +131,10 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .rkdev { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--ink); text-align: center; }
 .rkor { flex: 1 1 100%; text-align: center; font-size: 12px; color: var(--muted); margin-top: 4px; }
 .rkjoin { flex: 1 1 100%; display: flex; gap: 8px; }
-.rkjoin input { letter-spacing: 0.1em; text-transform: uppercase; }
-.rkjoin input::placeholder { letter-spacing: normal; text-transform: none; }
+.rkjoin .codebox { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+.rkjoin .codebox input { flex: 1 1 0; width: 0; text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: 0.15em; text-transform: uppercase; padding: 9px 4px; }
+.rkjoin .codebox input::placeholder { color: rgba(255, 255, 255, 0.22); }
+.rkjoin .dash { flex: none; font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--gold); }
 #rkNew, #rkOut { flex: 1 1 100%; padding: 12px 14px; font-size: 15px; }
 .rkmsg { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6; text-align: center; }
 .rkmsg:empty { display: none; }
@@ -1205,9 +1207,38 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       '<p class="hint">폰·PC·태블릿의 기록을 하나로 합쳐서 볼 수 있어요. 처음 쓰는 기기에서 코드를 만들고, 다른 기기에서 그 코드를 입력하세요.</p>' +
       '<button type="button" id="rkNew">새 코드 만들기</button>' +
       '<div class="rkor">또는 받은 코드 입력</div>' +
-      '<div class="rkjoin"><input id="rkInput" maxlength="9" placeholder="예: ABCD-1234" autocomplete="off" autocapitalize="characters" spellcheck="false"><button type="button" id="rkJoin">연결</button></div>' +
+      '<div class="rkjoin"><div class="codebox">' +
+      '<input id="rkIn1" maxlength="4" placeholder="XXXX" aria-label="코드 앞 4자리" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">' +
+      '<span class="dash" aria-hidden="true">-</span>' +
+      '<input id="rkIn2" maxlength="4" placeholder="XXXX" aria-label="코드 뒤 4자리" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">' +
+      '</div><button type="button" id="rkJoin">연결</button></div>' +
       '<p class="err" id="rkErr"></p>';
-    var inp = $('rkInput');
+    // Code input: two 4-character boxes with a fixed dash between them. Only letters and digits are kept (upper case);
+    // typing past the 4th character moves on to the second box, and a pasted full code fills both.
+    var in1 = $('rkIn1'), in2 = $('rkIn2');
+    function clean(v) { return v.toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    function fill(v, from) {
+      var all = clean((from === 2 ? in1.value : '') + v).slice(0, 8);
+      in1.value = all.slice(0, 4); in2.value = all.slice(4);
+      if (all.length >= 4) { in2.focus(); var l = in2.value.length; try { in2.setSelectionRange(l, l); } catch (e) {} }
+    }
+    in1.addEventListener('input', function () {
+      var v = clean(in1.value);
+      if (v.length > 4) fill(v + in2.value, 1);
+      else { in1.value = v; if (v.length === 4) in2.focus(); }
+    });
+    in2.addEventListener('input', function () { in2.value = clean(in2.value).slice(0, 4); });
+    [in1, in2].forEach(function (el) {
+      el.addEventListener('paste', function (e) {
+        var t = (e.clipboardData || window.clipboardData).getData('text');
+        if (!t) return;
+        e.preventDefault();
+        fill(el === in1 ? t : in1.value + t, 1);
+      });
+    });
+    in2.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && !in2.value) { e.preventDefault(); in1.focus(); in1.value = in1.value.slice(0, -1); }
+    });
     function err(s) { $('rkErr').textContent = s; }
     function busy(b) { $('rkNew').disabled = b; $('rkJoin').disabled = b; }
     function fail() { busy(false); err('연결하지 못했어요. 인터넷 연결을 확인해 주세요.'); }
@@ -1216,15 +1247,15 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
       sync.create().then(function () { $('rkMsg').textContent = '코드를 만들었어요. 다른 기기에서 이 코드를 입력하세요.'; }, fail);
     });
     function join() {
-      var c = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      if (c.length !== 8) { err('코드 8자리를 입력하세요.'); inp.focus(); return; }
+      var c = clean(in1.value) + clean(in2.value);
+      if (c.length !== 8) { err('코드 8자리를 입력하세요.'); (in1.value.length < 4 ? in1 : in2).focus(); return; }
       err(''); busy(true);
       sync.join(c).then(function () { $('rkMsg').textContent = '연결했어요. 기록을 합쳤어요.'; }, function (e) {
         if (e === 'none') { busy(false); err('없는 코드예요. 다시 확인해 주세요.'); } else fail();
       });
     }
     $('rkJoin').addEventListener('click', join);
-    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') join(); });
+    [in1, in2].forEach(function (el) { el.addEventListener('keydown', function (e) { if (e.key === 'Enter') join(); }); });
   }
   function rkOpen() {
     $('rk').hidden = false;
