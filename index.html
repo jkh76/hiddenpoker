@@ -100,12 +100,6 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .tally { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; background: rgba(8, 20, 16, 0.72); border: 1px solid rgba(240, 194, 75, 0.4); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: nowrap; }
 .head .tally { display: inline-block; margin-top: 10px; }
 .tally:empty, .head .tally:empty { display: none; }
-/* Shared records: the record chip and the "기록 순위" button sit on one row under the description. */
-.recrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
-.recrow .tally, .head .recrow .tally { margin-top: 0; }
-.rankbtn { font-family: var(--font-body); font-size: 14px; font-weight: 700; color: var(--gold); padding: 8px 14px; min-height: 38px; border-radius: 999px; background: rgba(8, 20, 16, 0.72); border: 1px solid rgba(240, 194, 75, 0.6); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
-.rankbtn:active { transform: translateY(1px); }
-.rankbtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 /* Ranking window */
 .rk { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.62); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .rkp { width: 100%; max-width: 440px; max-height: 86vh; max-height: 86dvh; overflow: auto; background: #0f1f19; border: 1.5px solid rgba(240, 194, 75, 0.55); border-radius: 16px; padding: 16px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; gap: 12px; }
@@ -153,6 +147,14 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .snd:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .snd svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .snd .off { display: none; }
+/* Sync button: same gold look and height as the sound switch, with a devices icon and a label so its job reads at a glance. */
+.syncbtn { flex: none; height: 42px; display: inline-flex; align-items: center; gap: 6px; padding: 0 13px 0 11px; border-radius: 12px; border: 0; background: linear-gradient(145deg, #ffe08a, #f0c24b 50%, #e8913a); color: #2a1a04; font-family: var(--font-body); font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; box-shadow: 0 4px 16px rgba(240, 194, 75, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5); transition: transform 0.12s, box-shadow 0.2s; -webkit-tap-highlight-color: transparent; }
+.syncbtn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(240, 194, 75, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+.syncbtn:active { transform: translateY(1px); }
+.syncbtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.syncbtn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.titlerow { gap: 10px; }
+.titlerow .snd + .syncbtn { margin-left: -2px; }
 .snd[aria-pressed="true"] { background: rgba(8, 20, 16, 0.72); color: #ff6a5e; box-shadow: inset 0 0 0 1.5px rgba(255, 106, 94, 0.55); }
 .snd[aria-pressed="true"] .on { display: none; }
 .snd[aria-pressed="true"] .off { display: inline; }
@@ -350,6 +352,8 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   .tally b { font-size: 13px; }
   .snd { width: 34px; height: 34px; border-radius: 10px; }
   .snd svg { width: 18px; height: 18px; }
+  .syncbtn { height: 34px; border-radius: 10px; font-size: 12px; padding: 0 10px 0 8px; gap: 4px; }
+  .syncbtn svg { width: 17px; height: 17px; }
   .levelrow { padding: 2px 10px 8px; }
   .levelrow .lbl { font-size: 13px; }
   .levelrow .levels { margin-top: 2px; }
@@ -388,9 +392,13 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
         <button class="snd" id="snd" type="button" aria-pressed="false" aria-label="효과음 끄기" title="효과음">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path class="on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/><path class="off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
         </button>
+        <button class="syncbtn" id="rankBtn" type="button" aria-label="기록 동기화" title="기기 간 기록 동기화">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="13" y="8" width="8" height="12" rx="1.2"/><path d="M18 8V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h9"/><path d="M7 20h6"/></svg>
+          <span>동기화</span>
+        </button>
       </div>
       <p class="sub">카드를 20초 동안 외우세요. 뒤집힌 카드 중 2장을 골라 공개된 3장과 함께 가장 높은 5장 족보를 만듭니다.</p>
-      <div class="recrow"><div class="tally" id="tally"></div><button class="rankbtn" id="rankBtn" type="button">🔄 기록 동기화</button></div>
+      <div class="tally" id="tally"></div>
     </div>
   </div>
 
