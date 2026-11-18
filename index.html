@@ -100,6 +100,46 @@ h1 { font-family: var(--font-display); font-size: 30px; line-height: 1.1; margin
 .tally { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 14px; border-radius: 999px; background: rgba(8, 20, 16, 0.72); border: 1px solid rgba(240, 194, 75, 0.4); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); white-space: nowrap; }
 .head .tally { display: inline-block; margin-top: 10px; }
 .tally:empty, .head .tally:empty { display: none; }
+/* Shared records: the record chip and the "기록 순위" button sit on one row under the description. */
+.recrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.recrow .tally, .head .recrow .tally { margin-top: 0; }
+.rankbtn { font-family: var(--font-body); font-size: 14px; font-weight: 700; color: var(--gold); padding: 8px 14px; min-height: 38px; border-radius: 999px; background: rgba(8, 20, 16, 0.72); border: 1px solid rgba(240, 194, 75, 0.6); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.rankbtn:active { transform: translateY(1px); }
+.rankbtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+/* Ranking window */
+.rk { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.62); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.rkp { width: 100%; max-width: 440px; max-height: 86vh; max-height: 86dvh; overflow: auto; background: #0f1f19; border: 1.5px solid rgba(240, 194, 75, 0.55); border-radius: 16px; padding: 16px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; gap: 12px; }
+.rkh { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rkh h2 { margin: 0; font-family: var(--font-display); font-size: 20px; color: var(--gold); }
+.rkx { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 18px; cursor: pointer; }
+.rkname { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.rkname b { color: var(--ink); }
+.rkname input { flex: 1 1 140px; min-width: 0; font: inherit; font-size: 16px; color: var(--ink); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.rkname input:focus { outline: none; border-color: var(--gold); }
+.rkname button { font: inherit; font-size: 14px; font-weight: 700; padding: 10px 14px; border-radius: 10px; border: 0; background: var(--gold); color: #1c1606; cursor: pointer; }
+.rkname button.ghost { background: var(--panel); color: var(--ink); border: 1px solid var(--line); font-weight: 500; padding: 6px 12px; }
+.rktbl { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; font-size: 15px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.rkr { display: grid; grid-template-columns: 1fr 1fr 1.2fr 1fr; align-items: center; gap: 6px; padding: 10px 10px; border-radius: 8px; text-align: right; }
+.rkr > span:first-child { text-align: left; }
+.rkr.hd { font-size: 12px; color: var(--muted); padding-block: 2px; }
+.rkr:not(.hd):nth-child(even) { background: rgba(255, 255, 255, 0.04); }
+.rkr .lv { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--gold); }
+.rkr .tp { color: var(--best); font-weight: 700; }
+.rkcode { flex: 1 1 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 10px; border-radius: 12px; border: 1px dashed rgba(240, 194, 75, 0.6); background: rgba(240, 194, 75, 0.08); text-align: center; }
+.rkcode b { font-family: var(--font-display); font-size: 30px; letter-spacing: 0.12em; color: var(--gold); user-select: all; -webkit-user-select: all; }
+.rkcode .k { font-size: 12px; color: var(--muted); }
+.rkdev { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--ink); text-align: center; }
+.rkor { flex: 1 1 100%; text-align: center; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.rkjoin { flex: 1 1 100%; display: flex; gap: 8px; }
+.rkjoin input { letter-spacing: 0.1em; text-transform: uppercase; }
+.rkjoin input::placeholder { letter-spacing: normal; text-transform: none; }
+#rkNew, #rkOut { flex: 1 1 100%; padding: 12px 14px; font-size: 15px; }
+.rkmsg { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6; text-align: center; }
+.rkmsg:empty { display: none; }
+.rkname .hint { flex: 1 1 100%; margin: 0; font-size: 13px; line-height: 1.55; }
+.rkname button:disabled { opacity: 0.6; }
+.rkname .err { flex: 1 1 100%; margin: 0; font-size: 13px; color: #ff6a5e; }
+.rkname .err:empty { display: none; }
 .tally b { color: var(--gold); font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 .tally .lv { color: var(--gold); font-weight: 700; }
 .tally .dot { color: rgba(255, 255, 255, 0.35); margin: 0 6px; }
@@ -348,7 +388,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
         </button>
       </div>
       <p class="sub">카드를 20초 동안 외우세요. 뒤집힌 카드 중 2장을 골라 공개된 3장과 함께 가장 높은 5장 족보를 만듭니다.</p>
-      <div class="tally" id="tally"></div>
+      <div class="recrow"><div class="tally" id="tally"></div><button class="rankbtn" id="rankBtn" type="button">🔄 기록 동기화</button></div>
     </div>
   </div>
 
@@ -399,7 +439,14 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
   </details>
   <div class="burst" id="burst" role="status" aria-live="polite"></div>
 </main>
-<footer class="ver">v1.32 · 2026-11-17</footer>
+<div class="rk" id="rk" hidden>
+  <div class="rkp" role="dialog" aria-modal="true" aria-labelledby="rkTitle">
+    <div class="rkh"><h2 id="rkTitle">🔄 기록 동기화</h2><button class="rkx" id="rkClose" type="button" aria-label="닫기">✕</button></div>
+    <div class="rkname" id="rkBody"></div>
+    <p class="rkmsg" id="rkMsg"></p>
+  </div>
+</div>
+<footer class="ver">v2.0 · 2026-11-18</footer>
 
 <script>
 (function () {
@@ -888,7 +935,7 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     try { localStorage.setItem('blindpoker.v2', JSON.stringify(all)); } catch (e) {}
   }
   function showTally(n) {
-    var t = loadTally(n);
+    var t = sync.tally(n);
     $('tally').innerHTML = t.games ? ('<span class="lv">' + LEVELS[n] + '</span><span class="dot">·</span>' + t.games + '판<span class="dot">·</span>최적 선택 <b>' + t.top + '</b>회') : '';
   }
 
@@ -1002,7 +1049,195 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     if (optimal) t.top += 1;
     saveTally(n, t);
     showTally(n);
+    sync.recordGame(n, optimal);
   }
+
+  // ---- Record sync (Firebase Realtime Database) ----
+  // One device makes a sync code; entering the same code on other phones, PCs and tablets ties them together.
+  // Each device keeps its own share at hiddenpoker/sync/<code>/devices/<device id>, and the record shown is the sum of
+  // all devices, so two devices never overwrite each other. The first connection on a device brings that device's
+  // earlier games along. Nothing lists the codes, so a record can only be read by someone who has its code.
+  var FB_CONFIG = {
+    apiKey: 'AIzaSyArR7QSPgMe3w4TGUHxaAybG86l6rlRWIc',
+    authDomain: 'hiddenpoker.firebaseapp.com',
+    databaseURL: 'https://hiddenpoker-default-rtdb.asia-southeast1.firebasedatabase.app',
+    projectId: 'hiddenpoker',
+    storageBucket: 'hiddenpoker.firebasestorage.app',
+    messagingSenderId: '298208502160',
+    appId: '1:298208502160:web:aa343e01a8073706cd5315'
+  };
+  var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var sync = (function () {
+    var ready = null, uid = null, db = null, ROOT = 'hiddenpoker/sync/';
+    function ls(k, v) {
+      try {
+        if (v === undefined) return JSON.parse(localStorage.getItem(k));
+        if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v));
+      } catch (e) {}
+      return null;
+    }
+    function zero() { return { l8: { games: 0, top: 0 }, l12: { games: 0, top: 0 }, l16: { games: 0, top: 0 } }; }
+    function norm(o) {
+      var z = zero();
+      if (o) [8, 12, 16].forEach(function (n) { var t = o['l' + n]; if (t) z['l' + n] = { games: +t.games || 0, top: +t.top || 0 }; });
+      return z;
+    }
+    function add(a, b) {
+      var z = zero();
+      [8, 12, 16].forEach(function (n) { var k = 'l' + n; z[k] = { games: a[k].games + b[k].games, top: a[k].top + b[k].top }; });
+      return z;
+    }
+    function localRec() { var all = loadAll(), o = {}; [8, 12, 16].forEach(function (n) { o['l' + n] = all[String(n)]; }); return norm(o); }
+    function newCode() {
+      var a = new Uint32Array(8), s = '';
+      crypto.getRandomValues(a);
+      for (var i = 0; i < 8; i++) s += CODE_CHARS.charAt(a[i] % CODE_CHARS.length);
+      return s;
+    }
+    function load(src) {
+      return new Promise(function (res, rej) {
+        var s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    function init() {
+      if (ready) return ready;
+      var base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+      ready = (window.firebase ? Promise.resolve() : load(base + 'firebase-app-compat.js').then(function () {
+        return Promise.all([load(base + 'firebase-auth-compat.js'), load(base + 'firebase-database-compat.js')]);
+      })).then(function () {
+        if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+        db = firebase.database();
+        return firebase.auth().signInAnonymously();
+      }).then(function (c) { uid = c.user.uid; });
+      ready.catch(function () { ready = null; });
+      return ready;
+    }
+    function code() { var s = ls('blindpoker.sync'); return s && s.code ? s.code : null; }
+    function slot(c) { return norm(ls('blindpoker.slot.' + c)); }
+    // Remember the other devices' share so the record chip shows the full total even when offline.
+    function keepOthers(c, devs) {
+      var others = zero(), count = 0;
+      Object.keys(devs || {}).forEach(function (id) { count++; if (id !== uid) others = add(others, norm(devs[id])); });
+      ls('blindpoker.others.' + c, { rec: others, devices: Math.max(1, count) });
+    }
+    function push() {
+      var c = code();
+      if (!c) return Promise.resolve();
+      return init().then(function () {
+        var rec = slot(c);
+        rec.t = firebase.database.ServerValue.TIMESTAMP;
+        return db.ref(ROOT + c + '/devices/' + uid).set(rec);
+      }).then(function () {
+        return db.ref(ROOT + c + '/devices').once('value');
+      }).then(function (s) { keepOthers(c, s.val()); api.onChange(); }).catch(function () {});
+    }
+    // Tie this device to a code. devs: the devices already saved under it.
+    function attach(c, devs) {
+      var cached = ls('blindpoker.slot.' + c);
+      // This device's share: what the database already has for it, else what it kept locally, else (first connection
+      // on this device only) the games played here before connecting.
+      var start = devs[uid] ? norm(devs[uid]) : cached ? norm(cached) : !ls('blindpoker.merged') ? localRec() : zero();
+      ls('blindpoker.slot.' + c, start);
+      ls('blindpoker.merged', true);
+      ls('blindpoker.sync', { code: c });
+      keepOthers(c, devs);
+      return push().then(function () { api.onChange(); });
+    }
+    var api = {
+      onChange: function () {},
+      code: code,
+      devices: function () { var c = code(), o = c && ls('blindpoker.others.' + c); return (o && o.devices) || 1; },
+      // Record shown for a level: the synced total when connected, this device's own record otherwise.
+      tally: function (n) {
+        var c = code();
+        if (!c) return loadTally(n);
+        var o = ls('blindpoker.others.' + c);
+        return add(slot(c), norm(o && o.rec))['l' + n];
+      },
+      recordGame: function (n, optimal) {
+        var c = code();
+        if (!c) return;
+        var s = slot(c);
+        s['l' + n].games += 1;
+        if (optimal) s['l' + n].top += 1;
+        ls('blindpoker.slot.' + c, s);
+        push();
+      },
+      push: push,
+      create: function () {
+        var c = newCode();
+        return init().then(function () { return attach(c, {}); }).then(function () { return c; });
+      },
+      // Rejects with 'none' when no device uses the code yet, anything else for a connection problem.
+      join: function (c) {
+        return init().then(function () { return db.ref(ROOT + c + '/devices').once('value'); }).then(function (s) {
+          var devs = s.val();
+          if (!devs) throw 'none';
+          return attach(c, devs);
+        });
+      },
+      refresh: function () { return push(); },
+      leave: function () { ls('blindpoker.sync', null); api.onChange(); }
+    };
+    return api;
+  })();
+  sync.onChange = function () { showTally(state.n); if (!$('rk').hidden) rkView(); };
+
+  function fmtCode(c) { return c.slice(0, 4) + '-' + c.slice(4); }
+  function rkView() {
+    var box = $('rkBody'), c = sync.code();
+    if (c) {
+      var rows = [[16, '상'], [12, '중'], [8, '하']].map(function (l) {
+        var t = sync.tally(l[0]);
+        return '<div class="rkr"><span class="lv">' + l[1] + '</span><span>' + t.games + '판</span><span class="tp">' + t.top + '회</span><span>' + (t.games ? Math.round(t.top / t.games * 100) : 0) + '%</span></div>';
+      }).join('');
+      box.innerHTML =
+        '<div class="rkcode"><span class="k">내 동기화 코드</span><b>' + fmtCode(c) + '</b><span class="k">다른 기기에서 이 코드를 입력하면 기록이 합쳐져요.</span></div>' +
+        '<p class="rkdev">기기 ' + sync.devices() + '대 기록 합산</p>' +
+        '<div class="rktbl"><div class="rkr hd"><span>난이도</span><span>판 수</span><span>최적 선택</span><span>비율</span></div>' + rows + '</div>' +
+        '<button type="button" class="ghost" id="rkOut">이 기기 연결 끊기</button>';
+      $('rkOut').addEventListener('click', function () { sync.leave(); $('rkMsg').textContent = '연결을 끊었어요. 같은 코드를 다시 입력하면 다시 합쳐져요.'; });
+      return;
+    }
+    box.innerHTML =
+      '<p class="hint">폰·PC·태블릿의 기록을 하나로 합쳐서 볼 수 있어요. 처음 쓰는 기기에서 코드를 만들고, 다른 기기에서 그 코드를 입력하세요.</p>' +
+      '<button type="button" id="rkNew">새 코드 만들기</button>' +
+      '<div class="rkor">또는 받은 코드 입력</div>' +
+      '<div class="rkjoin"><input id="rkInput" maxlength="9" placeholder="예: ABCD-1234" autocomplete="off" autocapitalize="characters" spellcheck="false"><button type="button" id="rkJoin">연결</button></div>' +
+      '<p class="err" id="rkErr"></p>';
+    var inp = $('rkInput');
+    function err(s) { $('rkErr').textContent = s; }
+    function busy(b) { $('rkNew').disabled = b; $('rkJoin').disabled = b; }
+    function fail() { busy(false); err('연결하지 못했어요. 인터넷 연결을 확인해 주세요.'); }
+    $('rkNew').addEventListener('click', function () {
+      err(''); busy(true);
+      sync.create().then(function () { $('rkMsg').textContent = '코드를 만들었어요. 다른 기기에서 이 코드를 입력하세요.'; }, fail);
+    });
+    function join() {
+      var c = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (c.length !== 8) { err('코드 8자리를 입력하세요.'); inp.focus(); return; }
+      err(''); busy(true);
+      sync.join(c).then(function () { $('rkMsg').textContent = '연결했어요. 기록을 합쳤어요.'; }, function (e) {
+        if (e === 'none') { busy(false); err('없는 코드예요. 다시 확인해 주세요.'); } else fail();
+      });
+    }
+    $('rkJoin').addEventListener('click', join);
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') join(); });
+  }
+  function rkOpen() {
+    $('rk').hidden = false;
+    $('rkMsg').textContent = '';
+    rkView();
+    // Pick up games played on the other devices since last time.
+    if (sync.code()) sync.refresh();
+  }
+  function rkClose() { $('rk').hidden = true; }
+  $('rankBtn').addEventListener('click', rkOpen);
+  $('rkClose').addEventListener('click', rkClose);
+  $('rk').addEventListener('click', function (e) { if (e.target === $('rk')) rkClose(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('rk').hidden) rkClose(); });
 
   // Button press sound for every button except the cards and the sound switch.
   document.addEventListener('click', function (e) {
@@ -1068,6 +1303,8 @@ details.rules ol { padding-left: 20px; margin: 10px 0 0; }
     showLevel();
     showTally(state.n);
     introBoard();
+    // Catch up on any upload missed while offline.
+    sync.push();
     alignStage();
   })();
 
